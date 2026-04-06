@@ -18,7 +18,7 @@ export async function startServer(): Promise<void> {
 
   const server = new McpServer({
     name: "ember",
-    version: "0.1.0",
+    version: "0.1.1",
   });
 
   server.registerTool(

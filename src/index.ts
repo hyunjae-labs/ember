@@ -36,6 +36,15 @@ if (args.includes("update")) {
   process.exit(0);
 }
 
+if (args.includes("warmup")) {
+  console.log("Downloading embedding model...");
+  const { getEmbedder } = await import("./embedder/index.js");
+  const embedder = await getEmbedder();
+  await embedder.embed("warmup");
+  console.log("Model ready.");
+  process.exit(0);
+}
+
 startServer().catch((err) => {
   console.error("Failed to start ember:", err);
   process.exit(1);
