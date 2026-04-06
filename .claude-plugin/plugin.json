@@ -1,0 +1,20 @@
+{
+  "name": "ember",
+  "version": "0.1.0",
+  "description": "Personal todo MCP server for Claude Code",
+  "author": {
+    "name": "hyunjae-labs",
+    "url": "https://github.com/hyunjae-labs"
+  },
+  "homepage": "https://github.com/hyunjae-labs/ember",
+  "repository": "https://github.com/hyunjae-labs/ember",
+  "license": "MIT",
+  "keywords": ["skill", "mcp", "claude", "todo", "task", "ember"],
+  "skills": "./skills/",
+  "mcpServers": {
+    "ember": {
+      "command": "npx",
+      "args": ["-y", "getember@latest"]
+    }
+  }
+}
