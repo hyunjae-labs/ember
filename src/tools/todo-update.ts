@@ -21,11 +21,16 @@ export async function handleUpdateTodo(
   const existing = getTodoByUuid(db, params.uuid);
   if (!existing) return toolError(`uuid '${params.uuid}' not found`);
 
-  const embedder = await getEmbedder();
-  const newTitle = params.title ?? existing.title;
-  const newNote = params.note !== undefined ? params.note : existing.note;
-  const text = [newTitle, newNote].filter(Boolean).join(" ");
-  const embedding = await embedder.embed("passage: " + text);
+  const textChanged = params.title !== undefined || params.note !== undefined;
+  let embedding: Float32Array | undefined;
+
+  if (textChanged) {
+    const embedder = await getEmbedder();
+    const newTitle = params.title ?? existing.title;
+    const newNote = params.note !== undefined ? params.note : existing.note;
+    const text = [newTitle, newNote].filter(Boolean).join(" ");
+    embedding = await embedder.embed("passage: " + text);
+  }
 
   const updated = updateTodo(db, { ...params, embedding });
   if (!updated) return toolError(`uuid '${params.uuid}' not found`);

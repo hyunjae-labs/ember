@@ -8,6 +8,7 @@ import { handleListTodos } from "./tools/todo-list.js";
 import { handleUpdateTodo } from "./tools/todo-update.js";
 import { handleCompleteTodo } from "./tools/todo-complete.js";
 import { handleArchiveTodo } from "./tools/todo-archive.js";
+import { handleUnarchiveTodo } from "./tools/todo-unarchive.js";
 import { handleSearchTodos } from "./tools/todo-search.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,7 +19,7 @@ export async function startServer(): Promise<void> {
 
   const server = new McpServer({
     name: "ember",
-    version: "0.1.1",
+    version: "0.2.0",
   });
 
   server.registerTool(
@@ -81,6 +82,15 @@ export async function startServer(): Promise<void> {
       inputSchema: { uuid: z.string() },
     },
     async (args): Promise<ToolResult> => handleArchiveTodo(db, args)
+  );
+
+  server.registerTool(
+    "unarchive_todo",
+    {
+      description: "Restore an archived todo. Clears archived_at so it appears in default queries again.",
+      inputSchema: { uuid: z.string() },
+    },
+    async (args): Promise<ToolResult> => handleUnarchiveTodo(db, args)
   );
 
   server.registerTool(

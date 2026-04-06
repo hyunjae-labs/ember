@@ -119,7 +119,7 @@ export function updateTodo(
     status?: string;
     priority?: string;
     tags?: string[];
-    embedding: Float32Array;
+    embedding?: Float32Array;
   }
 ): TodoRow | null {
   const existing = getTodoByUuid(db, params.uuid);
@@ -138,10 +138,6 @@ export function updateTodo(
     WHERE uuid = @uuid
   `);
 
-  const updateVec = db.prepare(`
-    UPDATE vec_todos SET embedding = ? WHERE rowid = ?
-  `);
-
   const transaction = db.transaction(() => {
     updateRow.run({
       uuid: params.uuid,
@@ -153,7 +149,10 @@ export function updateTodo(
       tags: params.tags ? JSON.stringify(params.tags) : null,
       updated_at: now,
     });
-    updateVec.run(Buffer.from(params.embedding.buffer), BigInt(existing.id));
+    if (params.embedding) {
+      db.prepare(`UPDATE vec_todos SET embedding = ? WHERE rowid = ?`)
+        .run(Buffer.from(params.embedding.buffer), BigInt(existing.id));
+    }
   });
 
   transaction();
@@ -187,6 +186,21 @@ export function archiveTodo(
   const now = new Date().toISOString();
   db.prepare(`
     UPDATE todos SET archived_at = @now, updated_at = @now WHERE uuid = @uuid
+  `).run({ uuid, now });
+
+  return getTodoByUuid(db, uuid);
+}
+
+export function unarchiveTodo(
+  db: Database.Database,
+  uuid: string
+): TodoRow | null {
+  const existing = getTodoByUuid(db, uuid);
+  if (!existing) return null;
+
+  const now = new Date().toISOString();
+  db.prepare(`
+    UPDATE todos SET archived_at = NULL, updated_at = @now WHERE uuid = @uuid
   `).run({ uuid, now });
 
   return getTodoByUuid(db, uuid);
@@ -251,6 +265,8 @@ export function todoHybridSearch(
   if (params.status && params.status !== "all") {
     conditions.push("status = ?");
     args.push(params.status);
+  } else if (!params.status) {
+    conditions.push("status IN ('todo', 'in_progress')");
   }
 
   const rows = db

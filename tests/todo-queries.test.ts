@@ -9,6 +9,7 @@ import {
   updateTodo,
   completeTodo,
   archiveTodo,
+  unarchiveTodo,
   todoHybridSearch,
 } from "../src/db/todo-queries.js";
 
@@ -145,6 +146,33 @@ describe("todo-queries", () => {
     });
   });
 
+  describe("unarchiveTodo", () => {
+    it("clears archived_at", () => {
+      const uuid = insertTodo(db, { title: "task", embedding: DUMMY_EMBEDDING });
+      archiveTodo(db, uuid);
+      const result = unarchiveTodo(db, uuid);
+      expect(result).not.toBeNull();
+      expect(result!.archived_at).toBeNull();
+    });
+
+    it("unarchived todo appears in default list again", () => {
+      const uuid = insertTodo(db, { title: "task", embedding: DUMMY_EMBEDDING });
+      archiveTodo(db, uuid);
+      expect(listTodos(db, {}).map(r => r.uuid)).not.toContain(uuid);
+      unarchiveTodo(db, uuid);
+      expect(listTodos(db, {}).map(r => r.uuid)).toContain(uuid);
+    });
+  });
+
+  describe("updateTodo", () => {
+    it("skips vec update when embedding not provided", () => {
+      const uuid = insertTodo(db, { title: "task", embedding: DUMMY_EMBEDDING });
+      const updated = updateTodo(db, { uuid, status: "in_progress" });
+      expect(updated).not.toBeNull();
+      expect(updated!.status).toBe("in_progress");
+    });
+  });
+
   describe("todoHybridSearch", () => {
     it("finds by title keyword", () => {
       const uuid = insertTodo(db, {
@@ -157,6 +185,31 @@ describe("todo-queries", () => {
         embedding: DUMMY_EMBEDDING,
         query: "budget",
         limit: 10,
+      });
+      expect(results.map(r => r.uuid)).toContain(uuid);
+    });
+
+    it("excludes completed by default", () => {
+      const uuid = insertTodo(db, { title: "budget review", embedding: DUMMY_EMBEDDING });
+      completeTodo(db, uuid);
+
+      const results = todoHybridSearch(db, {
+        embedding: DUMMY_EMBEDDING,
+        query: "budget",
+        limit: 10,
+      });
+      expect(results.map(r => r.uuid)).not.toContain(uuid);
+    });
+
+    it("status=all includes completed", () => {
+      const uuid = insertTodo(db, { title: "budget review", embedding: DUMMY_EMBEDDING });
+      completeTodo(db, uuid);
+
+      const results = todoHybridSearch(db, {
+        embedding: DUMMY_EMBEDDING,
+        query: "budget",
+        limit: 10,
+        status: "all",
       });
       expect(results.map(r => r.uuid)).toContain(uuid);
     });
