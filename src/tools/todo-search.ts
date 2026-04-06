@@ -2,6 +2,7 @@ import type Database from "better-sqlite3";
 import { getEmbedder } from "../embedder/index.js";
 import { todoHybridSearch } from "../db/todo-queries.js";
 import { toolResult, toolError } from "./helpers.js";
+import { CONFIG } from "../config.js";
 
 export interface SearchTodosParams {
   query: string;
@@ -16,7 +17,7 @@ export async function handleSearchTodos(
 ): Promise<{ content: Array<{ type: string; text: string }> }> {
   if (!params.query?.trim()) return toolError("query is required");
 
-  const limit = Math.min(params.limit ?? 10, 50);
+  const limit = Math.min(params.limit ?? CONFIG.searchDefaultLimit, CONFIG.searchMaxLimit);
   const embedder = await getEmbedder();
   const embedding = await embedder.embed("query: " + params.query.trim());
 

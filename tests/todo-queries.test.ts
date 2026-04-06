@@ -118,6 +118,13 @@ describe("todo-queries", () => {
       const result = updateTodo(db, { uuid: "nonexistent", title: "x", embedding: DUMMY_EMBEDDING });
       expect(result).toBeNull();
     });
+
+    it("skips vec update when embedding not provided", () => {
+      const uuid = insertTodo(db, { title: "task", embedding: DUMMY_EMBEDDING });
+      const updated = updateTodo(db, { uuid, status: "in_progress" });
+      expect(updated).not.toBeNull();
+      expect(updated!.status).toBe("in_progress");
+    });
   });
 
   describe("completeTodo", () => {
@@ -161,15 +168,6 @@ describe("todo-queries", () => {
       expect(listTodos(db, {}).map(r => r.uuid)).not.toContain(uuid);
       unarchiveTodo(db, uuid);
       expect(listTodos(db, {}).map(r => r.uuid)).toContain(uuid);
-    });
-  });
-
-  describe("updateTodo", () => {
-    it("skips vec update when embedding not provided", () => {
-      const uuid = insertTodo(db, { title: "task", embedding: DUMMY_EMBEDDING });
-      const updated = updateTodo(db, { uuid, status: "in_progress" });
-      expect(updated).not.toBeNull();
-      expect(updated!.status).toBe("in_progress");
     });
   });
 

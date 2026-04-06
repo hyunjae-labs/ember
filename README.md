@@ -25,6 +25,7 @@ npx getember warmup
 | `update_todo` | Update a todo by `uuid`. Pass only fields to change |
 | `complete_todo` | Mark a todo as done (idempotent) |
 | `archive_todo` | Soft-delete a todo (hidden from default queries) |
+| `unarchive_todo` | Restore an archived todo |
 | `search_todos` | Semantic hybrid search over todos |
 
 ## Data

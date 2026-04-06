@@ -1,12 +1,13 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+const emberDir = process.env.EMBER_DIR || join(homedir(), ".ember");
+
 export const CONFIG = {
-  get emberDir() { return process.env.EMBER_DIR || join(homedir(), ".ember"); },
-  get dbPath() { return process.env.EMBER_DB || join(homedir(), ".ember", "ember.db"); },
+  emberDir,
+  dbPath: process.env.EMBER_DB || join(emberDir, "ember.db"),
   embeddingModel: "Xenova/multilingual-e5-small",
   embeddingDimensions: 384,
-  embeddingBatchSize: 32,
-  todoSearchDefaultLimit: 10,
-  todoSearchMaxLimit: 50,
+  searchDefaultLimit: 10,
+  searchMaxLimit: 50,
 } as const;

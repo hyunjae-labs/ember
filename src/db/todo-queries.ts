@@ -1,7 +1,6 @@
 import type Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
 
-// better-sqlite3 accepted binding parameter types
 type BindingParameter = string | number | bigint | Buffer | null;
 
 export interface TodoRow {

@@ -18,13 +18,13 @@ export async function handleUpdateTodo(
 ): Promise<{ content: Array<{ type: string; text: string }> }> {
   if (!params.uuid?.trim()) return toolError("uuid is required");
 
-  const existing = getTodoByUuid(db, params.uuid);
-  if (!existing) return toolError(`uuid '${params.uuid}' not found`);
-
   const textChanged = params.title !== undefined || params.note !== undefined;
   let embedding: Float32Array | undefined;
 
   if (textChanged) {
+    const existing = getTodoByUuid(db, params.uuid);
+    if (!existing) return toolError(`uuid '${params.uuid}' not found`);
+
     const embedder = await getEmbedder();
     const newTitle = params.title ?? existing.title;
     const newNote = params.note !== undefined ? params.note : existing.note;

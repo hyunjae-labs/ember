@@ -12,7 +12,7 @@ triggers:
 
 # ember — Personal Todo MCP Server
 
-ember provides 6 MCP tools for managing personal todos with semantic search.
+ember provides 7 MCP tools for managing personal todos with semantic search.
 
 ## Tools
 
@@ -42,6 +42,10 @@ Mark a todo as done. Idempotent — re-completing preserves the original complet
 
 ### archive_todo
 Soft-delete a todo. Hidden from default queries but data is preserved.
+- `uuid` (required): The todo's UUID
+
+### unarchive_todo
+Restore an archived todo so it appears in default queries again.
 - `uuid` (required): The todo's UUID
 
 ### search_todos
