@@ -1,6 +1,6 @@
 {
   "name": "getember",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Personal todo MCP server for Claude Code",
   "type": "module",
   "bin": {

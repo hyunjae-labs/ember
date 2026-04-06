@@ -23,9 +23,10 @@ npx getember warmup
 | `add_todo` | Add a todo. Required: `title`. Optional: `note`, `priority`, `tags` |
 | `list_todos` | List todos. Defaults to incomplete only. `status='all'` includes completed |
 | `update_todo` | Update a todo by `uuid`. Pass only fields to change |
-| `complete_todo` | Mark a todo as done (idempotent) |
-| `archive_todo` | Soft-delete a todo (hidden from default queries) |
-| `unarchive_todo` | Restore an archived todo |
+| `complete_todo` | Mark todo(s) as done (single uuid or array) |
+| `archive_todo` | Soft-delete todo(s) (single uuid or array) |
+| `unarchive_todo` | Restore archived todo(s) |
+| `delete_todo` | Permanently delete archived todo(s) |
 | `search_todos` | Semantic hybrid search over todos |
 
 ## Data

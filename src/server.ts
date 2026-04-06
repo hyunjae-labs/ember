@@ -9,6 +9,7 @@ import { handleUpdateTodo } from "./tools/todo-update.js";
 import { handleCompleteTodo } from "./tools/todo-complete.js";
 import { handleArchiveTodo } from "./tools/todo-archive.js";
 import { handleUnarchiveTodo } from "./tools/todo-unarchive.js";
+import { handleDeleteTodo } from "./tools/todo-delete.js";
 import { handleSearchTodos } from "./tools/todo-search.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -19,7 +20,7 @@ export async function startServer(): Promise<void> {
 
   const server = new McpServer({
     name: "ember",
-    version: "0.2.1",
+    version: "0.3.0",
   });
 
   server.registerTool(
@@ -69,8 +70,8 @@ export async function startServer(): Promise<void> {
   server.registerTool(
     "complete_todo",
     {
-      description: "Mark a todo as done. If already completed, returns it unchanged (preserves completed_at).",
-      inputSchema: { uuid: z.string() },
+      description: "Mark todo(s) as done. Accepts a single uuid or array. If already completed, preserves completed_at.",
+      inputSchema: { uuid: z.union([z.string(), z.array(z.string())]) },
     },
     async (args): Promise<ToolResult> => handleCompleteTodo(db, args)
   );
@@ -78,8 +79,8 @@ export async function startServer(): Promise<void> {
   server.registerTool(
     "archive_todo",
     {
-      description: "Soft-delete a todo. Data is kept but hidden from default queries. Use list_todos(includeArchived=true) to see archived items.",
-      inputSchema: { uuid: z.string() },
+      description: "Soft-delete todo(s). Data is kept but hidden from default queries. Accepts a single uuid or array.",
+      inputSchema: { uuid: z.union([z.string(), z.array(z.string())]) },
     },
     async (args): Promise<ToolResult> => handleArchiveTodo(db, args)
   );
@@ -87,10 +88,19 @@ export async function startServer(): Promise<void> {
   server.registerTool(
     "unarchive_todo",
     {
-      description: "Restore an archived todo. Clears archived_at so it appears in default queries again.",
-      inputSchema: { uuid: z.string() },
+      description: "Restore archived todo(s). Accepts a single uuid or array.",
+      inputSchema: { uuid: z.union([z.string(), z.array(z.string())]) },
     },
     async (args): Promise<ToolResult> => handleUnarchiveTodo(db, args)
+  );
+
+  server.registerTool(
+    "delete_todo",
+    {
+      description: "Permanently delete todo(s). Only archived todos can be deleted. Accepts a single uuid or array.",
+      inputSchema: { uuid: z.union([z.string(), z.array(z.string())]) },
+    },
+    async (args): Promise<ToolResult> => handleDeleteTodo(db, args)
   );
 
   server.registerTool(

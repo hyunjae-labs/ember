@@ -158,51 +158,104 @@ export function updateTodo(
   return getTodoByUuid(db, params.uuid);
 }
 
-export function completeTodo(
+export function completeTodos(
   db: Database.Database,
-  uuid: string
-): TodoRow | null {
-  const existing = getTodoByUuid(db, uuid);
-  if (!existing) return null;
-  if (existing.status === "done") return existing;
-
+  uuids: string[]
+): TodoRow[] {
   const now = new Date().toISOString();
-  db.prepare(`
-    UPDATE todos SET status = 'done', completed_at = @now, updated_at = @now
-    WHERE uuid = @uuid
-  `).run({ uuid, now });
+  const results: TodoRow[] = [];
 
-  return getTodoByUuid(db, uuid);
+  const transaction = db.transaction(() => {
+    for (const uuid of uuids) {
+      const existing = getTodoByUuid(db, uuid);
+      if (!existing) continue;
+      if (existing.status === "done") { results.push(existing); continue; }
+
+      db.prepare(`
+        UPDATE todos SET status = 'done', completed_at = @now, updated_at = @now
+        WHERE uuid = @uuid
+      `).run({ uuid, now });
+
+      const updated = getTodoByUuid(db, uuid);
+      if (updated) results.push(updated);
+    }
+  });
+
+  transaction();
+  return results;
 }
 
-export function archiveTodo(
+export function archiveTodos(
   db: Database.Database,
-  uuid: string
-): TodoRow | null {
-  const existing = getTodoByUuid(db, uuid);
-  if (!existing) return null;
-
+  uuids: string[]
+): TodoRow[] {
   const now = new Date().toISOString();
-  db.prepare(`
-    UPDATE todos SET archived_at = @now, updated_at = @now WHERE uuid = @uuid
-  `).run({ uuid, now });
+  const results: TodoRow[] = [];
 
-  return getTodoByUuid(db, uuid);
+  const transaction = db.transaction(() => {
+    for (const uuid of uuids) {
+      const existing = getTodoByUuid(db, uuid);
+      if (!existing) continue;
+
+      db.prepare(`
+        UPDATE todos SET archived_at = @now, updated_at = @now WHERE uuid = @uuid
+      `).run({ uuid, now });
+
+      const updated = getTodoByUuid(db, uuid);
+      if (updated) results.push(updated);
+    }
+  });
+
+  transaction();
+  return results;
 }
 
-export function unarchiveTodo(
+export function unarchiveTodos(
   db: Database.Database,
-  uuid: string
-): TodoRow | null {
-  const existing = getTodoByUuid(db, uuid);
-  if (!existing) return null;
-
+  uuids: string[]
+): TodoRow[] {
   const now = new Date().toISOString();
-  db.prepare(`
-    UPDATE todos SET archived_at = NULL, updated_at = @now WHERE uuid = @uuid
-  `).run({ uuid, now });
+  const results: TodoRow[] = [];
 
-  return getTodoByUuid(db, uuid);
+  const transaction = db.transaction(() => {
+    for (const uuid of uuids) {
+      const existing = getTodoByUuid(db, uuid);
+      if (!existing) continue;
+
+      db.prepare(`
+        UPDATE todos SET archived_at = NULL, updated_at = @now WHERE uuid = @uuid
+      `).run({ uuid, now });
+
+      const updated = getTodoByUuid(db, uuid);
+      if (updated) results.push(updated);
+    }
+  });
+
+  transaction();
+  return results;
+}
+
+export function deleteTodos(
+  db: Database.Database,
+  uuids: string[]
+): { deleted: string[]; skipped: string[] } {
+  const deleted: string[] = [];
+  const skipped: string[] = [];
+
+  const transaction = db.transaction(() => {
+    for (const uuid of uuids) {
+      const existing = getTodoByUuid(db, uuid);
+      if (!existing) continue;
+      if (!existing.archived_at) { skipped.push(uuid); continue; }
+
+      db.prepare(`DELETE FROM vec_todos WHERE rowid = ?`).run(BigInt(existing.id));
+      db.prepare(`DELETE FROM todos WHERE id = ?`).run(existing.id);
+      deleted.push(uuid);
+    }
+  });
+
+  transaction();
+  return { deleted, skipped };
 }
 
 export function todoHybridSearch(

@@ -1,18 +1,17 @@
 ---
-name: ember-help
-description: Explains ember's todo management tools and how to use them
+name: ember
+description: Personal todo MCP server for Claude Code. Invoke when the user mentions todos, tasks, or ember.
 triggers:
   - ember
   - todo
   - task
   - my todos
   - show todos
-  - what can ember do
 ---
 
 # ember — Personal Todo MCP Server
 
-ember provides 7 MCP tools for managing personal todos with semantic search.
+8 MCP tools for managing personal todos with hybrid semantic search (Vector + FTS5 + RRF).
 
 ## Tools
 
@@ -37,19 +36,23 @@ Update a todo by UUID. Only pass fields you want to change.
 - Set `note` to `null` to clear it
 
 ### complete_todo
-Mark a todo as done. Idempotent — re-completing preserves the original completed_at.
-- `uuid` (required): The todo's UUID
+Mark todo(s) as done. Idempotent — re-completing preserves the original completed_at.
+- `uuid` (required): Single UUID string or array of UUIDs
 
 ### archive_todo
-Soft-delete a todo. Hidden from default queries but data is preserved.
-- `uuid` (required): The todo's UUID
+Soft-delete todo(s). Hidden from default queries but data is preserved.
+- `uuid` (required): Single UUID string or array of UUIDs
 
 ### unarchive_todo
-Restore an archived todo so it appears in default queries again.
-- `uuid` (required): The todo's UUID
+Restore archived todo(s) so they appear in default queries again.
+- `uuid` (required): Single UUID string or array of UUIDs
+
+### delete_todo
+Permanently delete todo(s). **Only archived todos can be deleted** (must archive first).
+- `uuid` (required): Single UUID string or array of UUIDs
 
 ### search_todos
-Semantic hybrid search (vector + FTS5 + Reciprocal Rank Fusion).
+Semantic hybrid search (vector + FTS5 + Reciprocal Rank Fusion). Defaults to incomplete todos only.
 - `query` (required): Search text
 - `status`, `includeArchived`, `limit`: Optional filters
 

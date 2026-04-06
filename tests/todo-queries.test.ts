@@ -7,9 +7,10 @@ import {
   listTodos,
   getTodoByUuid,
   updateTodo,
-  completeTodo,
-  archiveTodo,
-  unarchiveTodo,
+  completeTodos,
+  archiveTodos,
+  unarchiveTodos,
+  deleteTodos,
   todoHybridSearch,
 } from "../src/db/todo-queries.js";
 
@@ -69,7 +70,7 @@ describe("todo-queries", () => {
     it("defaults to incomplete (todo/in_progress) only", () => {
       const uuid1 = insertTodo(db, { title: "task1", embedding: DUMMY_EMBEDDING });
       const uuid2 = insertTodo(db, { title: "task2", embedding: DUMMY_EMBEDDING });
-      completeTodo(db, uuid2);
+      completeTodos(db, [uuid2]);
 
       const results = listTodos(db, {});
       expect(results.map(r => r.uuid)).toContain(uuid1);
@@ -78,21 +79,21 @@ describe("todo-queries", () => {
 
     it("status=all includes completed", () => {
       const uuid1 = insertTodo(db, { title: "task", embedding: DUMMY_EMBEDDING });
-      completeTodo(db, uuid1);
+      completeTodos(db, [uuid1]);
       const results = listTodos(db, { status: "all" });
       expect(results.map(r => r.uuid)).toContain(uuid1);
     });
 
     it("archived hidden by default", () => {
       const uuid1 = insertTodo(db, { title: "task", embedding: DUMMY_EMBEDDING });
-      archiveTodo(db, uuid1);
+      archiveTodos(db, [uuid1]);
       const results = listTodos(db, { status: "all" });
       expect(results.map(r => r.uuid)).not.toContain(uuid1);
     });
 
     it("includeArchived=true shows archived", () => {
       const uuid1 = insertTodo(db, { title: "task", embedding: DUMMY_EMBEDDING });
-      archiveTodo(db, uuid1);
+      archiveTodos(db, [uuid1]);
       const results = listTodos(db, { includeArchived: true });
       expect(results.map(r => r.uuid)).toContain(uuid1);
     });
@@ -127,47 +128,91 @@ describe("todo-queries", () => {
     });
   });
 
-  describe("completeTodo", () => {
+  describe("completeTodos", () => {
     it("sets status to done and completed_at", () => {
       const uuid = insertTodo(db, { title: "task", embedding: DUMMY_EMBEDDING });
-      const result = completeTodo(db, uuid);
-      expect(result).not.toBeNull();
-      expect(result!.status).toBe("done");
-      expect(result!.completed_at).not.toBeNull();
+      const results = completeTodos(db, [uuid]);
+      expect(results).toHaveLength(1);
+      expect(results[0].status).toBe("done");
+      expect(results[0].completed_at).not.toBeNull();
     });
 
     it("idempotent on already completed todo", () => {
       const uuid = insertTodo(db, { title: "task", embedding: DUMMY_EMBEDDING });
-      completeTodo(db, uuid);
-      const result = completeTodo(db, uuid);
-      expect(result!.status).toBe("done");
+      completeTodos(db, [uuid]);
+      const results = completeTodos(db, [uuid]);
+      expect(results[0].status).toBe("done");
+    });
+
+    it("batch completes multiple todos", () => {
+      const u1 = insertTodo(db, { title: "t1", embedding: DUMMY_EMBEDDING });
+      const u2 = insertTodo(db, { title: "t2", embedding: DUMMY_EMBEDDING });
+      const results = completeTodos(db, [u1, u2]);
+      expect(results).toHaveLength(2);
+      expect(results.every(r => r.status === "done")).toBe(true);
     });
   });
 
-  describe("archiveTodo", () => {
+  describe("archiveTodos", () => {
     it("sets archived_at", () => {
       const uuid = insertTodo(db, { title: "task", embedding: DUMMY_EMBEDDING });
-      const result = archiveTodo(db, uuid);
-      expect(result).not.toBeNull();
-      expect(result!.archived_at).not.toBeNull();
+      const results = archiveTodos(db, [uuid]);
+      expect(results).toHaveLength(1);
+      expect(results[0].archived_at).not.toBeNull();
+    });
+
+    it("batch archives multiple todos", () => {
+      const u1 = insertTodo(db, { title: "t1", embedding: DUMMY_EMBEDDING });
+      const u2 = insertTodo(db, { title: "t2", embedding: DUMMY_EMBEDDING });
+      const results = archiveTodos(db, [u1, u2]);
+      expect(results).toHaveLength(2);
+      expect(results.every(r => r.archived_at !== null)).toBe(true);
     });
   });
 
-  describe("unarchiveTodo", () => {
+  describe("unarchiveTodos", () => {
     it("clears archived_at", () => {
       const uuid = insertTodo(db, { title: "task", embedding: DUMMY_EMBEDDING });
-      archiveTodo(db, uuid);
-      const result = unarchiveTodo(db, uuid);
-      expect(result).not.toBeNull();
-      expect(result!.archived_at).toBeNull();
+      archiveTodos(db, [uuid]);
+      const results = unarchiveTodos(db, [uuid]);
+      expect(results).toHaveLength(1);
+      expect(results[0].archived_at).toBeNull();
     });
 
     it("unarchived todo appears in default list again", () => {
       const uuid = insertTodo(db, { title: "task", embedding: DUMMY_EMBEDDING });
-      archiveTodo(db, uuid);
+      archiveTodos(db, [uuid]);
       expect(listTodos(db, {}).map(r => r.uuid)).not.toContain(uuid);
-      unarchiveTodo(db, uuid);
+      unarchiveTodos(db, [uuid]);
       expect(listTodos(db, {}).map(r => r.uuid)).toContain(uuid);
+    });
+  });
+
+  describe("deleteTodos", () => {
+    it("deletes archived todo permanently", () => {
+      const uuid = insertTodo(db, { title: "task", embedding: DUMMY_EMBEDDING });
+      archiveTodos(db, [uuid]);
+      const { deleted, skipped } = deleteTodos(db, [uuid]);
+      expect(deleted).toContain(uuid);
+      expect(skipped).toHaveLength(0);
+      expect(getTodoByUuid(db, uuid)).toBeNull();
+    });
+
+    it("skips non-archived todo", () => {
+      const uuid = insertTodo(db, { title: "task", embedding: DUMMY_EMBEDDING });
+      const { deleted, skipped } = deleteTodos(db, [uuid]);
+      expect(deleted).toHaveLength(0);
+      expect(skipped).toContain(uuid);
+      expect(getTodoByUuid(db, uuid)).not.toBeNull();
+    });
+
+    it("batch: deletes archived, skips active", () => {
+      const u1 = insertTodo(db, { title: "archived", embedding: DUMMY_EMBEDDING });
+      const u2 = insertTodo(db, { title: "active", embedding: DUMMY_EMBEDDING });
+      archiveTodos(db, [u1]);
+      const { deleted, skipped } = deleteTodos(db, [u1, u2]);
+      expect(deleted).toEqual([u1]);
+      expect(skipped).toEqual([u2]);
     });
   });
 
@@ -189,7 +234,7 @@ describe("todo-queries", () => {
 
     it("excludes completed by default", () => {
       const uuid = insertTodo(db, { title: "budget review", embedding: DUMMY_EMBEDDING });
-      completeTodo(db, uuid);
+      completeTodos(db, [uuid]);
 
       const results = todoHybridSearch(db, {
         embedding: DUMMY_EMBEDDING,
@@ -201,7 +246,7 @@ describe("todo-queries", () => {
 
     it("status=all includes completed", () => {
       const uuid = insertTodo(db, { title: "budget review", embedding: DUMMY_EMBEDDING });
-      completeTodo(db, uuid);
+      completeTodos(db, [uuid]);
 
       const results = todoHybridSearch(db, {
         embedding: DUMMY_EMBEDDING,
@@ -214,7 +259,7 @@ describe("todo-queries", () => {
 
     it("excludes archived by default", () => {
       const uuid = insertTodo(db, { title: "budget review", embedding: DUMMY_EMBEDDING });
-      archiveTodo(db, uuid);
+      archiveTodos(db, [uuid]);
 
       const results = todoHybridSearch(db, {
         embedding: DUMMY_EMBEDDING,
