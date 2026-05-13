@@ -45,7 +45,7 @@ if (args.includes("warmup")) {
   process.exit(0);
 }
 
-startServer().catch((err) => {
+startServer(pkg.version).catch((err) => {
   console.error("Failed to start ember:", err);
   process.exit(1);
 });
